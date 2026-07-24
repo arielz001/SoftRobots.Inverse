@@ -17,14 +17,8 @@
 *******************************************************************************
 *                       Plugin SoftRobots.Inverse                             *
 *                                                                             *
-* This plugin is distributed under the GNU AGPL v3 (Affero General            *
-* Public License) license.                                                    *
-*                                                                             *
 * Authors: Christian Duriez, Eulalie Coevoet, Yinoussa Adagolodjo             *
-*                                                                             *
 * (c) 2023 INRIA                                                              *
-*                                                                             *
-* Contact information: https://project.inria.fr/softrobot/contact/            *
 ******************************************************************************/
 #define SOFTROBOTS_INVERSE_CameraProjectionEffector_CPP
 #include <SoftRobots.Inverse/component/config.h>
@@ -37,33 +31,21 @@ namespace softrobotsinverse::constraint
 using namespace sofa::defaulttype;
 using sofa::core::ConstraintParams;
 
-
 ////////////////////////////////////////////    FACTORY    //////////////////////////////////////////////
 using namespace sofa::helper;
 
-// Registering the component
-// see: http://wiki.sofa-framework.org/wiki/ObjectFactory
-// 1-RegisterObject("description") + .add<> : Register the component
-// 2-.add<>(true) : Set default template
+// Registering the component in the SOFA ObjectFactory
+int CameraProjectionEffectorClass = sofa::core::RegisterObject(
+        "CameraProjectionEffector constrains a 3D rigid model to match target 2D image ellipse parameters "
+        "[cx, cy, major, minor, angle] via camera projection.")
+    .add< CameraProjectionEffector<Rigid3Types> >(true) // Rigid3Types is the primary default template
+    .add< CameraProjectionEffector<Vec3Types> >()
+;
 
-int CameraProjectionEffectorClass = sofa::core::RegisterObject("This component is used to describe one or several desired positions "
-                                                 "of points of a model, that will be reached by acting on chosen actuator(s).")
-                .add< CameraProjectionEffector<Vec1Types> >()
-                .add< CameraProjectionEffector<Vec2Types> >()
-                .add< CameraProjectionEffector<Vec3Types> >(true)
-                .add< CameraProjectionEffector<Rigid3Types> >()
-        
-        ;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Force template specialization for the most common sofa floating point related type.
-// This goes with the extern template declaration in the .h. Declaring extern template
-// avoid the code generation of the template for each compilation unit.
-// see: http://www.stroustrup.com/C++11FAQ.html#extern-templates
-template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec1Types>;
-template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec2Types>;
-template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec3Types>;
+// Explicit template instantiation
 template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Rigid3Types>;
+template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec3Types>;
 
-
-} // namespace
+} // namespace softrobotsinverse::constraint
