@@ -77,8 +77,11 @@ public:
     using softrobots::constraint::CameraProjectionModel<DataTypes>::d_indices ;
     using softrobots::constraint::CameraProjectionModel<DataTypes>::d_directions ;
     using softrobots::constraint::CameraProjectionModel<DataTypes>::d_Jacobian ;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_PosSensor ;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_mum ;
+    // using softrobots::constraint::CameraProjectionModel<DataTypes>::d_PosSensor ;
+    // using softrobots::constraint::CameraProjectionModel<DataTypes>::d_mum ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_focalLength ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_principalPoint ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_ellipseRadius ;
     using softrobots::constraint::CameraProjectionModel<DataTypes>::d_useDirections ;
     using softrobots::constraint::CameraProjectionModel<DataTypes>::d_constraintIndex ;
     using softrobots::constraint::CameraProjectionModel<DataTypes>::d_weight ;
