@@ -17,31 +17,37 @@
 *******************************************************************************
 *                       Plugin SoftRobots.Inverse                             *
 *                                                                             *
+* This plugin is distributed under the GNU AGPL v3 (Affero General            *
+* Public License) license.                                                    *
+*                                                                             *
 * Authors: Christian Duriez, Eulalie Coevoet, Yinoussa Adagolodjo             *
+*                                                                             *
 * (c) 2023 INRIA                                                              *
+*                                                                             *
+* Contact information: https://project.inria.fr/softrobot/contact/            *
 ******************************************************************************/
 #pragma once
 
+#include <SoftRobots/component/constraint/model/CameraProjectionModel.h>
 #include <SoftRobots.Inverse/component/behavior/Effector.h>
-#include <SoftRobots.Inverse/component/config.h>
 
-#include <sofa/type/Vec.h>
-#include <Eigen/Dense>
+#include <SoftRobots.Inverse/component/config.h>
 
 namespace softrobotsinverse::constraint
 {
-using softrobotsinverse::behavior::Effector;
+using softrobotsinverse::behavior::Effector ;
 
 /**
- * @class CameraProjectionEffector
- * @brief Effector component for SoftRobots.Inverse that projects 3D rigid poses 
- *        into a 2D image ellipse space [cx, cy, major, minor, angle].
- */
+ * The "CameraProjectionEffector" component is used to constrain one or several points of a model
+ * to reach desired positions, by acting on chosen actuator(s).
+ * Description can be found at:
+ * https://softrobotscomponents.readthedocs.io
+*/
 template< class DataTypes >
-class CameraProjectionEffector : public Effector<DataTypes>
+class CameraProjectionEffector : public Effector<DataTypes>, public softrobots::constraint::CameraProjectionModel<DataTypes>
 {
 public:
-    SOFA_CLASS(SOFA_TEMPLATE(CameraProjectionEffector, DataTypes), SOFA_TEMPLATE(Effector, DataTypes));
+    SOFA_CLASS(SOFA_TEMPLATE(CameraProjectionEffector,DataTypes), SOFA_TEMPLATE(Effector,DataTypes));
 
     typedef typename sofa::core::behavior::MechanicalState<DataTypes> MechanicalState;
     typedef typename DataTypes::VecCoord            VecCoord;
@@ -53,42 +59,44 @@ public:
     CameraProjectionEffector(MechanicalState* object = nullptr);
     ~CameraProjectionEffector() override;
 
-    /////////////// Inherited from Effector ///////////////////
+    /////////////// Inherited from Effector ////////////
+
     void init() override;
 
-    void getConstraintViolation(const sofa::core::ConstraintParams* cParams,
+    void getConstraintViolation(const sofa::core::ConstraintParams* cParams ,
                                 sofa::linearalgebra::BaseVector *resV,
                                 const sofa::linearalgebra::BaseVector *Jdx) override;
-    ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////
 
-    // Goal data in 2D image space: [cx, cy, major, minor, angle]
-    sofa::Data<VecCoord>            d_effectorGoal;
-
-    // Camera intrinsic & 3D geometric parameters
-    sofa::Data<sofa::type::Vec2>    d_focalLength;      ///< Focal length [fx, fy] in pixels
-    sofa::Data<sofa::type::Vec2>    d_principalPoint;   ///< Principal point [u0, v0] in pixels
-    sofa::Data<double>              d_ellipseRadius;    ///< Real 3D radius of the target ellipse in meters
+    sofa::Data<VecCoord>                                d_effectorGoal;
 
     void setTargetDefaultValue();
     void resizeData();
 
     ////////////////////////// Inherited attributes ////////////////////////////
-    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::m_state;
-    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::d_componentState;
-    using Effector<DataTypes>::d_indices;
-    using Effector<DataTypes>::d_constraintIndex;
-    using Effector<DataTypes>::getTarget;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_indices ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_directions ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_Jacobian ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_PosSensor ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_mum ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_useDirections ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_constraintIndex ;
+    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_weight ;
+    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::m_state ;
+    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::d_componentState ;
+    using Effector<DataTypes>::getTarget ;
     ///////////////////////////////////////////////////////////////////////////
+    
+    
 
-private:
-    /**
-     * @brief Projects a 3D rigid pose into a 2D image ellipse [cx, cy, major, minor, angle].
-     */
-    Eigen::Vector5d computeProjectedEllipse(const Coord& pose3D);
 };
 
 #if !defined(SOFTROBOTS_INVERSE_CameraProjectionEFFECTOR_CPP)
+extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec1Types>;
+extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec2Types>;
+extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec3Types>;
 extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Rigid3Types>;
 #endif
 
-} // namespace softrobotsinverse::constraint
+} // namespace
+
