@@ -26,10 +26,10 @@
 *                                                                             *
 * Contact information: https://project.inria.fr/softrobot/contact/            *
 ******************************************************************************/
-#define SOFTROBOTS_INVERSE_CAMERAPROJECTIONEFFECTOR_CPP
+#define SOFTROBOTS_INVERSE_MAGNETEFFECTOR_CPP
 #include <SoftRobots.Inverse/component/config.h>
 #include <sofa/core/ObjectFactory.h>
-#include <SoftRobots.Inverse/component/constraint/CameraProjectionEffector.inl>
+#include <SoftRobots.Inverse/component/constraint/MagnetEffector.inl>
 
 namespace softrobotsinverse::constraint
 {
@@ -46,12 +46,12 @@ using namespace sofa::helper;
 // 1-RegisterObject("description") + .add<> : Register the component
 // 2-.add<>(true) : Set default template
 
-int CameraProjectionEffectorClass = sofa::core::RegisterObject("This component is used to describe one or several desired positions "
+int MagnetEffectorClass = sofa::core::RegisterObject("This component is used to describe one or several desired positions "
                                                  "of points of a model, that will be reached by acting on chosen actuator(s).")
-                .add< CameraProjectionEffector<Vec1Types> >()
-                .add< CameraProjectionEffector<Vec2Types> >()
-                .add< CameraProjectionEffector<Vec3Types> >()
-                .add< CameraProjectionEffector<Rigid3Types> >(true)
+                .add< MagnetEffector<Vec1Types> >()
+                .add< MagnetEffector<Vec2Types> >()
+                .add< MagnetEffector<Vec3Types> >(true)
+                .add< MagnetEffector<Rigid3Types> >()
         
         ;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,10 +60,10 @@ int CameraProjectionEffectorClass = sofa::core::RegisterObject("This component i
 // This goes with the extern template declaration in the .h. Declaring extern template
 // avoid the code generation of the template for each compilation unit.
 // see: http://www.stroustrup.com/C++11FAQ.html#extern-templates
-template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec1Types>;
-template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec2Types>;
-template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec3Types>;
-template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Rigid3Types>;
+template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Vec1Types>;
+template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Vec2Types>;
+template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Vec3Types>;
+template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Rigid3Types>;
 
 
 } // namespace

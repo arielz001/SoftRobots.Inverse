@@ -33,33 +33,31 @@
 #include <sofa/helper/logging/Messaging.h>
 
 #include <SoftRobots.Inverse/component/constraint/CameraProjectionEffector.h>
-
-// ------------------------------------------------------------------------------
-
 #include <Eigen/Dense>
-#include <Eigen/Geometry>  // Para cuaterniones
+#include <Eigen/Geometry>
 
 using namespace std;
 using namespace Eigen;
 
-// ------------------------------------------------------------------------------
-
-
 namespace softrobotsinverse::constraint
 {
 
-using sofa::helper::ReadAccessor ;
-using sofa::helper::WriteAccessor ;
+using sofa::helper::ReadAccessor;
+using sofa::helper::WriteAccessor;
 using sofa::core::objectmodel::ComponentState;
+
+// ------------------------------------------------------------------------------
+// Constructor & Destructor
+// ------------------------------------------------------------------------------
 
 template<class DataTypes>
 CameraProjectionEffector<DataTypes>::CameraProjectionEffector(MechanicalState* object)
     : Effector<DataTypes>(object)
-    , softrobots::constraint::CameraProjectionModel<DataTypes>(object)
-    , d_effectorGoal(initData(&d_effectorGoal,"effectorGoal",
-                    "Desired positions. \n"
-                    "If the size does not match with the size of indices, \n"
-                    "one will resize considerering the smallest one."))
+    , softrobots::constraint::CameraProjectionModel<DataTypes>(object) // Llama a la clase base
+    , d_effectorGoal(initData(&d_effectorGoal, "effectorGoal",
+                    "Desired 3D positions or target for the effector."))
+    , d_ellipseParameters(initData(&d_ellipseParameters, "ellipseParameters",
+                    "Target ellipse parameters detected in image [cx, cy, a, b, angle]."))
 {
 }
 
@@ -68,6 +66,10 @@ CameraProjectionEffector<DataTypes>::~CameraProjectionEffector()
 {
 }
 
+// ------------------------------------------------------------------------------
+// Métodos de inicialización
+// ------------------------------------------------------------------------------
+
 template<class DataTypes>
 void CameraProjectionEffector<DataTypes>::init()
 {
@@ -75,7 +77,7 @@ void CameraProjectionEffector<DataTypes>::init()
 
     if(!d_effectorGoal.isSet())
     {
-        msg_warning(this) <<"TargetPosition not defined. Default value assigned  ("<<Coord()<<").";
+        msg_warning(this) << "TargetPosition not defined. Default value assigned (" << Coord() << ").";
         setTargetDefaultValue();
     }
 
@@ -86,7 +88,7 @@ void CameraProjectionEffector<DataTypes>::init()
 template<class DataTypes>
 void CameraProjectionEffector<DataTypes>::setTargetDefaultValue()
 {
-    WriteAccessor<sofa::Data<VecCoord> > defaultTarget = d_effectorGoal;
+    WriteAccessor<sofa::Data<VecCoord>> defaultTarget = d_effectorGoal;
     defaultTarget.resize(1);
     defaultTarget[0] = Coord();
 }
@@ -96,111 +98,166 @@ void CameraProjectionEffector<DataTypes>::resizeData()
 {
     if(d_indices.getValue().size() < d_effectorGoal.getValue().size())
     {
-        msg_warning(this)<<"Indices size is lower than target size, some targets will not be considered.";
+        msg_warning(this) << "Indices size is lower than target size, some targets will not be considered.";
     }
     else
     {
-        msg_warning(this) <<"Indices size is larger than target size. Launch resize process.";
-        WriteAccessor<sofa::Data<sofa::type::vector<unsigned int> > > indices = d_indices;
+        msg_warning(this) << "Indices size is larger than target size. Launch resize process.";
+        WriteAccessor<sofa::Data<sofa::type::vector<unsigned int>>> indices = d_indices;
         indices.resize(d_effectorGoal.getValue().size());
     }
+}
+
+// ------------------------------------------------------------------------------
+// Función Auxiliar: Desproyección (2D Ellipse -> 3D Position)
+// ------------------------------------------------------------------------------
+
+Eigen::Vector3d ProjectionPosition(double cx_ellipse, double cy_ellipse, 
+                                   double a_ellipse, double b_ellipse, double angle_ellipse,
+                                   double cx_camera, double cy_camera, 
+                                   double x_focal_length, double y_focal_length,
+                                   double real_radius)
+{
+    if (a_ellipse <= 1e-6)
+    {
+        return Eigen::Vector3d::Zero();
+    }
+
+    double a = a_ellipse;
+
+    // Cálculo de la profundidad Z
+    double Z = (x_focal_length * real_radius) / a;
+
+    // Desproyección del centro
+    double X = (cx_ellipse - cx_camera) * Z / x_focal_length;
+    double Y = (cy_ellipse - cy_camera) * Z / y_focal_length;
+
+    SOFA_UNUSED(b_ellipse);
+    SOFA_UNUSED(angle_ellipse);
+
+    return Eigen::Vector3d(X, Y, Z);
 }
 
 
 
 
+Eigen::Matrix<double, 5, 1> calculateProjectedEllipse(
+    double x, double y, double z,
+    const Eigen::Matrix3d& R,
+    double radius,
+    const sofa::type::Vec2d& focalLength,
+    const sofa::type::Vec2d& principalPoint)
+{
+    // 1. Centro de la elipse en píxeles (Proyección perspectiva Pinhole)
+    double u = focalLength[0] * (x / z) + principalPoint[0];
+    double v = focalLength[1] * (y / z) + principalPoint[1];
 
-// --------------------------------------------------------------------------------------------------------------------------------------------
+    // 2. Extraer la normal del disco 3D (tercera columna de la matriz de rotación)
+    Eigen::Vector3d normal = R.col(2); 
 
+    // inclination
+    double cos_tilt = std::abs(normal(2));
+    if (cos_tilt < 1e-3) cos_tilt = 1e-3; // Evitar división por cero si está de canto
 
+    // Semiejes
+    double semi_a = focalLength[0] * (radius / z); 
+    double semi_b = semi_a * cos_tilt;           
 
-// Eigen::Vector3d Calculo_B_z(double x,double y,double z,double mum, double mu_hat_x,double mu_hat_y,double mu_hat_z)
-// {    
-//     // Definición de variables
-//     Vector3d Distancia_r(x, y, z);
-//     //std::cerr << "Valor de Distancia_r: " << Distancia_r << std::endl;
-//     double length_r = Distancia_r.norm();  // Magnitud del vector
-//     //std::cerr << "Valor de length_r: " << length_r << std::endl;
-//     Vector3d r_hat = Distancia_r / length_r; // Vector unitario
-//     // cout << "r_hat: " << r_hat.transpose() << endl;
-//     Vector3d Mu_hat(mu_hat_x, mu_hat_y,mu_hat_z);  // Dirección del momento magnético (vector unitario)
-//     // cout << "Mu_hat : " << Mu_hat.transpose() << endl;
-//     // Multiplicación por mu (magnitud)
-//     Eigen::Vector3d mu = Mu_hat * mum;
-//     // Producto tensorial r_hat * r_hat^T
-//     Eigen::Matrix3d AAA = 3 * (r_hat * r_hat.transpose()) - Eigen::Matrix3d::Identity();
-//     // Multiplicamos AAA por Mu_hat y luego por mu
-//     Eigen::Vector3d numerador = AAA * mu;
-//     double denominador = 4 * M_PI * std::pow(std::abs(length_r), 3);
-//     // Campo magnético B (vector)
-//     Eigen::Vector3d Campo_CameraProjectionico_resultado = numerador / denominador;
-//     Campo_CameraProjectionico_resultado *= 1e15;  // Multiplicamos por 10^12 (en unidades apropiadas)
-//     return Campo_CameraProjectionico_resultado;
-// }
-// Eigen::Vector3d Calculo_B_x(double x,double y,double z,double mum, double mu_hat_x,double mu_hat_y,double mu_hat_z)
-// {    
-//     // Definición de variables
-//     Vector3d Distancia_r(x, y, z);
-//     //std::cerr << "Valor de Distancia_r: " << Distancia_r << std::endl;
-//     double length_r = Distancia_r.norm();  // Magnitud del vector
-//     //std::cerr << "Valor de length_r: " << length_r << std::endl;
-//     Vector3d r_hat = Distancia_r / length_r; // Vector unitario
-//     // cout << "r_hat: " << r_hat.transpose() << endl;
-//     Vector3d Mu_hat(mu_hat_x, mu_hat_y,mu_hat_z);  // Dirección del momento magnético (vector unitario)
-//     // cout << "Mu_hat : " << Mu_hat.transpose() << endl;
-//     // Multiplicación por mu (magnitud)
-//     Eigen::Vector3d mu = Mu_hat * mum;
-//     // Producto tensorial r_hat * r_hat^T
-//     Eigen::Matrix3d AAA = 3 * (r_hat * r_hat.transpose()) - Eigen::Matrix3d::Identity();
-//     // Multiplicamos AAA por Mu_hat y luego por mu
-//     Eigen::Vector3d numerador = AAA * mu;
-//     double denominador = 4 * M_PI * std::pow(std::abs(length_r), 3);
-//     // Campo magnético B (vector)
-//     Eigen::Vector3d Campo_CameraProjectionico_resultado = numerador / denominador;
-//     Campo_CameraProjectionico_resultado *= 1e15;  // Multiplicamos por 10^12 (en unidades apropiadas)
-//     return Campo_CameraProjectionico_resultado;
-// }
-// Eigen::Vector3d Calculo_B_y(double x,double y,double z,double mum, double mu_hat_x,double mu_hat_y,double mu_hat_z)
-// {    
-//     // Definición de variables
-//     Vector3d Distancia_r(x, y, z);
-//     //std::cerr << "Valor de Distancia_r: " << Distancia_r << std::endl;
-//     double length_r = Distancia_r.norm();  // Magnitud del vector
-//     //std::cerr << "Valor de length_r: " << length_r << std::endl;
-//     Vector3d r_hat = Distancia_r / length_r; // Vector unitario
-//     // cout << "r_hat: " << r_hat.transpose() << endl;
-//     Vector3d Mu_hat(mu_hat_x, mu_hat_y,mu_hat_z);  // Dirección del momento magnético (vector unitario)
-//     // cout << "Mu_hat : " << Mu_hat.transpose() << endl;
-//     // Multiplicación por mu (magnitud)
-//     Eigen::Vector3d mu = Mu_hat * mum;
-//     // Producto tensorial r_hat * r_hat^T
-//     Eigen::Matrix3d AAA = 3 * (r_hat * r_hat.transpose()) - Eigen::Matrix3d::Identity();
-//     // Multiplicamos AAA por Mu_hat y luego por mu
-//     Eigen::Vector3d numerador = AAA * mu;
-//     double denominador = 4 * M_PI * std::pow(std::abs(length_r), 3);
-//     // Campo magnético B (vector)
-//     Eigen::Vector3d Campo_CameraProjectionico_resultado = numerador / denominador;
-//     Campo_CameraProjectionico_resultado *= 1e15;  // Multiplicamos por 10^12 (en unidades apropiadas)
-//     return Campo_CameraProjectionico_resultado;
-// }
+    // 5. Angle
+    double alpha = std::atan2(normal(1), normal(0));
 
-
-// // --------------------------------------------------------------------------------------------------------------------------------------------
+    Eigen::Matrix<double, 5, 1> ellipse;
+    ellipse << u, v, semi_a, semi_b, alpha;
+    return ellipse;
+}
 
 
 
-
+// ------------------------------------------------------------------------------
+// Método principal: Cálculo de la Violación de Restricciones (Solver Inverso)
+// ------------------------------------------------------------------------------
 template<class DataTypes>
 void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::core::ConstraintParams* cParams,
-                                                         sofa::linearalgebra::BaseVector *resV,
-                                                         const sofa::linearalgebra::BaseVector *Jdx)
+                                                                 sofa::linearalgebra::BaseVector *resV,
+                                                                 const sofa::linearalgebra::BaseVector *Jdx)
 {
+    if (d_componentState.getValue() != ComponentState::Valid)
+        return;
+
+    SOFA_UNUSED(cParams);
+
+    // 1. Acceso a las posiciones actuales de SOFA y parámetros
+    ReadAccessor<sofa::Data<VecCoord>> x = m_state->readPositions();
+    
+    const auto& ellipseParams   = sofa::helper::getReadAccessor(d_ellipseParameters); 
+    const double realRadius     = d_radiusEllipse.getValue();
+    
+    const auto& weight          = sofa::helper::getReadAccessor(d_weight);
+    const auto& indices         = sofa::helper::getReadAccessor(d_indices);
+    const auto& constraintIndex = sofa::helper::getReadAccessor(d_constraintIndex);
+
+    // Extraer calibración de la cámara directamente desde las variables Data
+    sofa::type::Vec2d fLength = d_focalLength.getValue();
+    sofa::type::Vec2d pPoint  = d_principalPoint.getValue();
+
+    // Elipse objetivo [cx, cy, a, b, angle]
+    Eigen::Matrix<double, 5, 1> E_target;
+    E_target << ellipseParams[0], ellipseParams[1], ellipseParams[2], ellipseParams[3], ellipseParams[4];
+
+    unsigned int index = 0;
+
+    // 2. Iterar sobre cada nodo/efector configurado
+    for (unsigned int i = 0; i < indices.size(); i++)
+    {
+        const auto& coord = x[indices[i]]; // Posición 3D y orientación actual en SOFA
+
+        double x_pos = coord[0];
+        double y_pos = coord[1];
+        double z_pos = coord[2];
+
+        // Extraer orientación (Cuaternión w, x, y, z)
+        Eigen::Quaterniond q(coord[6], coord[3], coord[4], coord[5]);
+        Eigen::Matrix3d R = q.toRotationMatrix();
+
+        // 3. Proyectar la elipse 2D según la postura actual del robot en 3D
+        Eigen::Matrix<double, 5, 1> E_current = calculateProjectedEllipse(
+            x_pos, y_pos, z_pos, 
+            R, 
+            realRadius, 
+            fLength, 
+            pPoint
+        );
+
+        // 4. Calcular la diferencia (error) entre lo proyectado y lo deseado
+        Eigen::Matrix<double, 5, 1> E_diff = E_current - E_target;
+
+        // 5. Asignar el residuo al vector resV (5 dimensiones por efector)
+        for (sofa::Size j = 0; j < 5; j++)
+        {
+            Real dfree = Jdx->element(constraintIndex + index) + E_diff[j] * weight[j];
+            resV->set(constraintIndex + index, dfree);
+            index++;
+        }
+    }
+}
+} // namespace softrobotsinverse::constraint
+
+
+// template<class DataTypes>
+// void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::core::ConstraintParams* cParams,
+//                                                          sofa::linearalgebra::BaseVector *resV,
+//                                                          const sofa::linearalgebra::BaseVector *Jdx)
+// {
 //     if(d_componentState.getValue() != ComponentState::Valid)
 //         return;
 
 //     SOFA_UNUSED(cParams);
-//     const auto& PosSensor = sofa::helper::getReadAccessor(d_PosSensor);
-//     const auto& mum = sofa::helper::getReadAccessor(d_mum);
+//     // const auto& PosSensor = sofa::helper::getReadAccessor(d_PosSensor);
+//     // const auto& mum = sofa::helper::getReadAccessor(d_mum);
+//     const auto& EllipseParameters = sofa::helper::getReadAccessor(d_EllipseParameters);
+//     const auto& CameraParameters = sofa::helper::getReadAccessor(d_CameraParameters);
+
+    
 //     ReadAccessor<sofa::Data<VecCoord> > x = m_state->readPositions();
 //     ReadAccessor<sofa::Data<VecCoord> > effectorGoal = d_effectorGoal;
 
@@ -254,7 +311,7 @@ void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::cor
 //         B_calculada_X = Calculo_B_x(coord[0]- ajuste_x,coord[1]- ajuste_y,coord[2]-ajuste_z,mum[0][0],mu_x,mu_y,mu_z);
 //         B_calculada_Y = Calculo_B_y(coord[0]- ajuste_x,coord[1]- ajuste_y,coord[2]-ajuste_z,mum[0][1],mu_x,mu_y,mu_z);
 
-//         // std::cout << "mum Antes de campo CameraProjectioneffector.inl: " << mum[0][0] << std::endl;
+//         // std::cout << "mum Antes de campo CameraProjectionEffector.inl: " << mum[0][0] << std::endl;
 //         std::cout << "Campo magnético B_calculado c++ X: " << B_calculada_X[0] << std::endl;
 //         std::cout << "Campo magnético B_calculado c++ Y: " << B_calculada_Y[1] << std::endl;
 //         std::cout << "Campo magnético B_calculado c++ Z: " << B_calculada[2] << std::endl;
@@ -269,11 +326,6 @@ void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::cor
 //     // std::cout << "B_calculada_z: " << B_calculada_z << std::endl;
 
 // // -----------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
 
 
 //     const auto& useDirections = sofa::helper::getReadAccessor(d_useDirections);
@@ -338,9 +390,9 @@ void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::cor
 //                 index++;
 //             }
 //     }
-}
+// }
 
 
 
 
-} // namespace
+// } // namespace

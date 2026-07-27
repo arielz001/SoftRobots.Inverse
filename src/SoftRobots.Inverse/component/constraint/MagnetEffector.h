@@ -28,7 +28,7 @@
 ******************************************************************************/
 #pragma once
 
-#include <SoftRobots/component/constraint/model/CameraProjectionModel.h>
+#include <SoftRobots/component/constraint/model/MagnetModel.h>
 #include <SoftRobots.Inverse/component/behavior/Effector.h>
 
 #include <SoftRobots.Inverse/component/config.h>
@@ -38,16 +38,16 @@ namespace softrobotsinverse::constraint
 using softrobotsinverse::behavior::Effector ;
 
 /**
- * The "CameraProjectionEffector" component is used to constrain one or several points of a model
+ * The "MagnetEffector" component is used to constrain one or several points of a model
  * to reach desired positions, by acting on chosen actuator(s).
  * Description can be found at:
  * https://softrobotscomponents.readthedocs.io
 */
 template< class DataTypes >
-class CameraProjectionEffector : public Effector<DataTypes>, public softrobots::constraint::CameraProjectionModel<DataTypes>
+class MagnetEffector : public Effector<DataTypes>, public softrobots::constraint::MagnetModel<DataTypes>
 {
 public:
-    SOFA_CLASS(SOFA_TEMPLATE(CameraProjectionEffector,DataTypes), SOFA_TEMPLATE(Effector,DataTypes));
+    SOFA_CLASS(SOFA_TEMPLATE(MagnetEffector,DataTypes), SOFA_TEMPLATE(Effector,DataTypes));
 
     typedef typename sofa::core::behavior::MechanicalState<DataTypes> MechanicalState;
     typedef typename DataTypes::VecCoord            VecCoord;
@@ -56,8 +56,8 @@ public:
     typedef typename DataTypes::Real                Real;
 
 public:
-    CameraProjectionEffector(MechanicalState* object = nullptr);
-    ~CameraProjectionEffector() override;
+    MagnetEffector(MechanicalState* object = nullptr);
+    ~MagnetEffector() override;
 
     /////////////// Inherited from Effector ////////////
 
@@ -69,27 +69,19 @@ public:
     ///////////////////////////////////////////////////////////////
 
     sofa::Data<VecCoord>                                d_effectorGoal;
-    sofa::Data<sofa::type::vector<double>>      d_ellipseParameters; // <-- AQUÍ AGREGAS LA ELIPSE
-
 
     void setTargetDefaultValue();
     void resizeData();
 
     ////////////////////////// Inherited attributes ////////////////////////////
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_indices ;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_directions ;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_Jacobian ;
-    
-    // using softrobots::constraint::CameraProjectionModel<DataTypes>::d_PosSensor ;
-    // using softrobots::constraint::CameraProjectionModel<DataTypes>::d_mum ;
-
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_focalLength;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_principalPoint;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_radiusEllipse;
-
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_useDirections ;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_constraintIndex ;
-    using softrobots::constraint::CameraProjectionModel<DataTypes>::d_weight ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_indices ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_directions ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_Jacobian ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_PosSensor ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_mum ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_useDirections ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_constraintIndex ;
+    using softrobots::constraint::MagnetModel<DataTypes>::d_weight ;
     using softrobots::behavior::SoftRobotsConstraint<DataTypes>::m_state ;
     using softrobots::behavior::SoftRobotsConstraint<DataTypes>::d_componentState ;
     using Effector<DataTypes>::getTarget ;
@@ -99,11 +91,11 @@ public:
 
 };
 
-#if !defined(SOFTROBOTS_INVERSE_CAMERAPROJECTIONEFFECTOR_CPP)
-extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec1Types>;
-extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec2Types>;
-extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Vec3Types>;
-extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionEffector<sofa::defaulttype::Rigid3Types>;
+#if !defined(SOFTROBOTS_INVERSE_MAGNETEFFECTOR_CPP)
+extern template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Vec1Types>;
+extern template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Vec2Types>;
+extern template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Vec3Types>;
+extern template class SOFA_SOFTROBOTS_INVERSE_API MagnetEffector<sofa::defaulttype::Rigid3Types>;
 #endif
 
 } // namespace
