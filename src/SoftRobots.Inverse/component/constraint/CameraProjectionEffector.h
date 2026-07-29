@@ -69,7 +69,8 @@ public:
     ///////////////////////////////////////////////////////////////
 
     sofa::Data<VecCoord>                                d_effectorGoal;
-    sofa::Data<sofa::type::vector<double>>      d_ellipseParameters; // <-- AQUÍ AGREGAS LA ELIPSE
+    sofa::Data<sofa::type::vector<double>>              d_ellipseParameters; 
+    sofa::Data<sofa::type::Vec3d>                       d_cameraPosition;
 
 
     void setTargetDefaultValue();
