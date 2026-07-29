@@ -149,6 +149,43 @@ Eigen::Vector3d ProjectionPosition(double cx_ellipse, double cy_ellipse,
 
 
 
+// Eigen::Matrix<double, 5, 1> calculateProjectedEllipse(
+//     double x, double y, double z,
+//     const Eigen::Matrix3d& R,
+//     double radius,
+//     const sofa::type::Vec2d& focalLength,
+//     const sofa::type::Vec2d& principalPoint,
+//     const sofa::type::Vec3d& cameraPos)
+// {
+//     double camera_z = cameraPos[2]; // Posición Z de la cámara
+
+//     // 1. Calcular la distancia REAL desde la lente de la cámara hasta el disco
+//     double z_rel = z - camera_z; // 115.0 - (-13.2) = 128.2 mm
+    
+//     double safe_z = std::abs(z_rel);
+//     if (safe_z < 10.0) safe_z = 10.0; 
+
+//     // 2. Proyección usando z_rel
+//     double u = focalLength[0] * (x / safe_z) + principalPoint[0];
+//     double v = focalLength[1] * (y / safe_z) + principalPoint[1];
+
+//     // 3. Normal e inclinación
+//     Eigen::Vector3d normal = R.col(2); 
+//     double cos_tilt = std::abs(normal(2));
+//     if (cos_tilt < 1e-3) cos_tilt = 1e-3;
+
+//     // 4. Semiejes calculados con la profundidad relativa correcta
+//     double semi_a = focalLength[0] * (radius / safe_z);  
+//     double semi_b = semi_a * cos_tilt;           
+
+//     // 5. Ángulo
+//     double alpha = std::atan2(normal(1), normal(0));
+//     Eigen::Matrix<double, 5, 1> ellipse;
+//     ellipse << u, v, semi_a, semi_b, alpha;
+
+//     std::cout << "ellipse: " << ellipse.transpose() << std::endl;
+//     return ellipse;
+// }
 Eigen::Matrix<double, 5, 1> calculateProjectedEllipse(
     double x, double y, double z,
     const Eigen::Matrix3d& R,
@@ -157,38 +194,119 @@ Eigen::Matrix<double, 5, 1> calculateProjectedEllipse(
     const sofa::type::Vec2d& principalPoint,
     const sofa::type::Vec3d& cameraPos)
 {
-    double camera_z = cameraPos[2]; // Posición Z de la cámara
-
-    // 1. Calcular la distancia REAL desde la lente de la cámara hasta el disco
-    double z_rel = z - camera_z; // 115.0 - (-13.2) = 128.2 mm
+    // 1. Coordenadas relativas a la cámara
+    double x_rel = x - cameraPos[0];
+    double y_rel = y - cameraPos[1];
+    double z_rel = z - cameraPos[2];
     
+    // 2. Control de división por cero
     double safe_z = std::abs(z_rel);
-    if (safe_z < 10.0) safe_z = 10.0; 
+    // if (safe_z < 5.0) safe_z = 5.0; 
 
-    // 2. Proyección usando z_rel
-    double u = focalLength[0] * (x / safe_z) + principalPoint[0];
-    double v = focalLength[1] * (y / safe_z) + principalPoint[1];
+    // 3. Proyección perspectiva en el plano de la imagen (Y invertido para formato píxel)
+    double u = focalLength[0] * (x_rel / safe_z) + principalPoint[0];
+    double v = focalLength[1] * (y_rel / safe_z) + principalPoint[1]; 
 
-    // 3. Normal e inclinación
+    // 4. Normal e inclinación
     Eigen::Vector3d normal = R.col(2); 
     double cos_tilt = std::abs(normal(2));
     if (cos_tilt < 1e-3) cos_tilt = 1e-3;
 
-    // 4. Semiejes calculados con la profundidad relativa correcta
+    // 5. Semiejes
     double semi_a = focalLength[0] * (radius / safe_z);  
     double semi_b = semi_a * cos_tilt;           
 
-    // 5. Ángulo
-    double alpha = std::atan2(normal(1), normal(0));
+    // 6. Ángulo del semieje mayor (+90° respecto a la normal)
+    double alpha_rad = std::atan2(-normal(1), normal(0)) + (M_PI / 2.0);
+    double alpha_deg = alpha_rad * (180.0 / M_PI);
+
+    // Normalización al rango [0, 180) por simetría de elipse
+    while (alpha_deg < 0.0) alpha_deg += 180.0;
+    while (alpha_deg >= 180.0) alpha_deg -= 180.0;
 
     Eigen::Matrix<double, 5, 1> ellipse;
-    ellipse << u, v, semi_a, semi_b, alpha;
+    ellipse << u, v, semi_a, semi_b, alpha_deg;
+
+    // Logs de depuración
+    std::cout << "ellipse: " << ellipse.transpose() << std::endl;
+    std::cout << "relative position: " << x_rel << ", " << y_rel << ", " << z_rel << std::endl;
+    std::cout << "camera position: " << cameraPos[0] << ", " << cameraPos[1] << ", " << cameraPos[2] << std::endl;
+    std::cout << "xyz position: " << x << ", " << y << ", " << z << std::endl;
+
     return ellipse;
 }
-
 // ------------------------------------------------------------------------------
 // Método principal: Cálculo de la Violación de Restricciones (Solver Inverso)
 // ------------------------------------------------------------------------------
+// template<class DataTypes>
+// void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::core::ConstraintParams* cParams,
+//                                                                  sofa::linearalgebra::BaseVector *resV,
+//                                                                  const sofa::linearalgebra::BaseVector *Jdx)
+// {
+//     if (d_componentState.getValue() != ComponentState::Valid)
+//         return;
+
+//     SOFA_UNUSED(cParams);
+
+//     // 1. Acceso a las posiciones actuales de SOFA y parámetros
+//     ReadAccessor<sofa::Data<VecCoord>> x = m_state->readPositions();
+    
+//     const auto& ellipseParams   = sofa::helper::getReadAccessor(d_ellipseParameters); 
+//     const double realRadius     = d_radiusEllipse.getValue();
+//     const auto& cameraPosition = sofa::helper::getReadAccessor(d_cameraPosition);
+//     const auto& weight          = sofa::helper::getReadAccessor(d_weight);
+//     const auto& indices         = sofa::helper::getReadAccessor(d_indices);
+//     const auto& constraintIndex = sofa::helper::getReadAccessor(d_constraintIndex);
+
+//     // Extraer calibración de la cámara directamente desde las variables Data
+//     sofa::type::Vec2d fLength = d_focalLength.getValue();
+//     sofa::type::Vec2d pPoint  = d_principalPoint.getValue();
+
+//     // Elipse objetivo [cx, cy, a, b, angle]
+//     Eigen::Matrix<double, 5, 1> E_target;
+//     E_target << ellipseParams[0], ellipseParams[1], ellipseParams[2], ellipseParams[3], ellipseParams[4];
+
+//     unsigned int index = 0;
+
+//     // 2. Iterar sobre cada nodo/efector configurado
+//     for (unsigned int i = 0; i < indices.size(); i++)
+//     {
+//         const auto& coord = x[indices[i]]; // Posición 3D y orientación actual en SOFA
+
+//         double x_pos = coord[0];
+//         double y_pos = coord[1];
+//         double z_pos = coord[2];
+
+//         // Extraer orientación (Cuaternión w, x, y, z)
+//         Eigen::Quaterniond q(coord[6], coord[3], coord[4], coord[5]);
+//         Eigen::Matrix3d R = q.toRotationMatrix();
+
+//         // 3. Proyectar la elipse 2D según la postura actual del robot en 3D
+//         Eigen::Matrix<double, 5, 1> E_current = calculateProjectedEllipse(
+//             x_pos, y_pos, z_pos, 
+//             R, 
+//             realRadius, 
+//             fLength, 
+//             pPoint,
+//             cameraPosition
+//         );
+
+//         // 4. Calcular la diferencia (error) entre lo proyectado y lo deseado
+//         Eigen::Matrix<double, 5, 1> E_diff = E_current - E_target;
+//         // std::cout << "E_diff: " << E_diff << std::endl;
+//         msg_info(this) << "E_diff: " << E_diff.transpose();
+
+//         for (sofa::Size j = 0; j < 5; j++)
+//             {
+//                 Real dfree = Jdx->element(constraintIndex + index) + E_diff[j] * weight[j];
+//                 resV->set(constraintIndex + index, dfree);
+//                 index++;
+//             }
+//             resV->set(constraintIndex + index, 0.0);
+//             index++;
+//     }
+// }
+
 template<class DataTypes>
 void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::core::ConstraintParams* cParams,
                                                                  sofa::linearalgebra::BaseVector *resV,
@@ -202,16 +320,16 @@ void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::cor
     // 1. Acceso a las posiciones actuales de SOFA y parámetros
     ReadAccessor<sofa::Data<VecCoord>> x = m_state->readPositions();
     
-    const auto& ellipseParams   = sofa::helper::getReadAccessor(d_ellipseParameters); 
-    const double realRadius     = d_radiusEllipse.getValue();
-    const auto& cameraPosition = sofa::helper::getReadAccessor(d_cameraPosition);
-    const auto& weight          = sofa::helper::getReadAccessor(d_weight);
-    const auto& indices         = sofa::helper::getReadAccessor(d_indices);
-    const auto& constraintIndex = sofa::helper::getReadAccessor(d_constraintIndex);
+    const auto& ellipseParams       = sofa::helper::getReadAccessor(d_ellipseParameters); 
+    const double realRadius         = d_radiusEllipse.getValue();
+    const sofa::type::Vec3d cameraPosition = d_cameraPosition.getValue(); // Acceso directo a Vec3d
+    const auto& weight              = sofa::helper::getReadAccessor(d_weight);
+    const auto& indices             = sofa::helper::getReadAccessor(d_indices);
+    const auto& constraintIndex     = sofa::helper::getReadAccessor(d_constraintIndex);
 
-    // Extraer calibración de la cámara directamente desde las variables Data
-    sofa::type::Vec2d fLength = d_focalLength.getValue();
-    sofa::type::Vec2d pPoint  = d_principalPoint.getValue();
+    // Extraer calibración de la cámara
+    const sofa::type::Vec2d fLength = d_focalLength.getValue();
+    const sofa::type::Vec2d pPoint  = d_principalPoint.getValue();
 
     // Elipse objetivo [cx, cy, a, b, angle]
     Eigen::Matrix<double, 5, 1> E_target;
@@ -228,7 +346,7 @@ void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::cor
         double y_pos = coord[1];
         double z_pos = coord[2];
 
-        // Extraer orientación (Cuaternión w, x, y, z)
+        // Extraer orientación (Cuaternión Eigen: w, x, y, z)
         Eigen::Quaterniond q(coord[6], coord[3], coord[4], coord[5]);
         Eigen::Matrix3d R = q.toRotationMatrix();
 
@@ -242,19 +360,23 @@ void CameraProjectionEffector<DataTypes>::getConstraintViolation(const sofa::cor
             cameraPosition
         );
 
-        // 4. Calcular la diferencia (error) entre lo proyectado y lo deseado
         Eigen::Matrix<double, 5, 1> E_diff = E_current - E_target;
-        // std::cout << "E_diff: " << E_diff << std::endl;
+
+        while (E_diff[4] > 90.0)  E_diff[4] -= 180.0;
+        while (E_diff[4] < -90.0) E_diff[4] += 180.0;
+
         msg_info(this) << "E_diff: " << E_diff.transpose();
 
         for (sofa::Size j = 0; j < 5; j++)
-            {
-                Real dfree = Jdx->element(constraintIndex + index) + E_diff[j] * weight[j];
-                resV->set(constraintIndex + index, dfree);
-                index++;
-            }
-            resV->set(constraintIndex + index, 0.0);
+        {
+            Real dfree = Jdx->element(constraintIndex + index) + E_diff[j] * weight[j];
+            resV->set(constraintIndex + index, dfree);
             index++;
+        }
+
+        // Relleno para la 6ta dimensión de restricción si el solver inverso lo requiere
+        resV->set(constraintIndex + index, 0.0);
+        index++;
     }
 }
 
