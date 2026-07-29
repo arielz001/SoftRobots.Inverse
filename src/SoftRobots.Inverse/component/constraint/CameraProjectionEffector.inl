@@ -148,7 +148,9 @@ Eigen::Matrix<double, 5, 1> calculateProjectedEllipse(
     double z_rel = z - cameraPos[2];
     
     // 2. Control de división por cero
-    double safe_z = std::abs(z_rel);
+    // double safe_z = std::abs(z_rel);
+    double safe_z = z_rel;
+
     // if (safe_z < 5.0) safe_z = 5.0; 
 
     // 3. Proyección perspectiva en el plano de la imagen (Y invertido para formato píxel)
@@ -161,7 +163,7 @@ Eigen::Matrix<double, 5, 1> calculateProjectedEllipse(
     if (cos_tilt < 1e-3) cos_tilt = 1e-3;
 
     // 5. Semiejes
-    double semi_a = focalLength[0] * (radius / safe_z);  
+    double semi_a = focalLength[0] * (2*radius / safe_z);  
     double semi_b = semi_a * cos_tilt;           
 
     // 6. Ángulo del semieje mayor (+90° respecto a la normal)
