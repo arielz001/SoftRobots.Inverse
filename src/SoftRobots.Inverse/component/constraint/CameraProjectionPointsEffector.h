@@ -35,11 +35,11 @@
 
 namespace softrobotsinverse::constraint
 {
-using softrobotsinverse::behavior::Effector;
+using softrobotsinverse::behavior::Effector ;
 
 /**
- * The "CameraProjectionPointsEffector" component is used to constrain one or several 2D points 
- * projected on an image plane to reach desired 2D coordinates [u, v], by acting on chosen actuator(s).
+ * The "CameraProjectionPointsEffector" component is used to constrain one or several points of a model
+ * to reach desired positions, by acting on chosen actuator(s).
  * Description can be found at:
  * https://softrobotscomponents.readthedocs.io
 */
@@ -47,7 +47,7 @@ template< class DataTypes >
 class CameraProjectionPointsEffector : public Effector<DataTypes>, public softrobots::constraint::CameraProjectionPointsModel<DataTypes>
 {
 public:
-    SOFA_CLASS(SOFA_TEMPLATE(CameraProjectionPointsEffector, DataTypes), SOFA_TEMPLATE(Effector, DataTypes));
+    SOFA_CLASS(SOFA_TEMPLATE(CameraProjectionPointsEffector,DataTypes), SOFA_TEMPLATE(Effector,DataTypes));
 
     typedef typename sofa::core::behavior::MechanicalState<DataTypes> MechanicalState;
     typedef typename DataTypes::VecCoord            VecCoord;
@@ -63,33 +63,41 @@ public:
 
     void init() override;
 
-    void getConstraintViolation(const sofa::core::ConstraintParams* cParams,
+    void getConstraintViolation(const sofa::core::ConstraintParams* cParams ,
                                 sofa::linearalgebra::BaseVector *resV,
                                 const sofa::linearalgebra::BaseVector *Jdx) override;
     ///////////////////////////////////////////////////////////////
 
     sofa::Data<VecCoord>                                d_effectorGoal;
-    sofa::Data<sofa::type::vector<double>>              d_pointParameters; 
+    sofa::Data<sofa::type::vector<double>>              d_ellipseParameters; 
     sofa::Data<sofa::type::Vec3d>                       d_cameraPosition;
+
 
     void setTargetDefaultValue();
     void resizeData();
 
     ////////////////////////// Inherited attributes ////////////////////////////
-    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_indices;
-    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_directions;
-    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_Jacobian;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_indices ;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_directions ;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_Jacobian ;
+    
+    // using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_PosSensor ;
+    // using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_mum ;
 
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_focalLength;
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_principalPoint;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_radiusEllipse;
 
-    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_useDirections;
-    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_constraintIndex;
-    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_weight;
-    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::m_state;
-    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::d_componentState;
-    using Effector<DataTypes>::getTarget;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_useDirections ;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_constraintIndex ;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_weight ;
+    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::m_state ;
+    using softrobots::behavior::SoftRobotsConstraint<DataTypes>::d_componentState ;
+    using Effector<DataTypes>::getTarget ;
     ///////////////////////////////////////////////////////////////////////////
+    
+    
+
 };
 
 #if !defined(SOFTROBOTS_INVERSE_CAMERAPROJECTIONPOINTSEFFECTOR_CPP)
@@ -99,4 +107,6 @@ extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionPointsEffector
 extern template class SOFA_SOFTROBOTS_INVERSE_API CameraProjectionPointsEffector<sofa::defaulttype::Rigid3Types>;
 #endif
 
-} // namespace softrobotsinverse::constraint
+} // namespace
+
+
