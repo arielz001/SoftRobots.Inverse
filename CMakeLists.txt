@@ -35,8 +35,8 @@ set(HEADER_FILES
     ${SRC_DIR}/component/constraint/CameraProjectionEffector.h
     ${SRC_DIR}/component/constraint/CameraProjectionEffector.inl
 
-    # ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.h
-    # ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.inl
+    ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.h
+    ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.inl
 
     # ACTUATOR
     ${SRC_DIR}/component/behavior/Actuator.h
@@ -100,7 +100,7 @@ set(SOURCE_FILES
 
     # Camera New Plugin
     ${SRC_DIR}/component/constraint/CameraProjectionEffector.cpp
-    # ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.cpp
+    ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.cpp
 
     # ACTUATOR
     ${SRC_DIR}/component/behavior/Actuator.cpp
