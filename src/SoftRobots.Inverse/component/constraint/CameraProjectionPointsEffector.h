@@ -69,7 +69,7 @@ public:
     ///////////////////////////////////////////////////////////////
 
     sofa::Data<VecCoord>                                d_effectorGoal;
-    sofa::Data<sofa::type::vector<double>>              d_ellipseParameters; 
+    sofa::Data<sofa::type::vector<double>>              d_pointCenter; 
     sofa::Data<sofa::type::Vec3d>                       d_cameraPosition;
 
 
@@ -86,7 +86,7 @@ public:
 
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_focalLength;
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_principalPoint;
-    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_radiusEllipse;
+    // using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_radiusEllipse;
 
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_useDirections ;
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_constraintIndex ;

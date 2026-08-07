@@ -54,8 +54,8 @@ CameraProjectionPointsEffector<DataTypes>::CameraProjectionPointsEffector(Mechan
     , softrobots::constraint::CameraProjectionPointsModel<DataTypes>(object)
     , d_effectorGoal(initData(&d_effectorGoal, "effectorGoal",
                     "Desired 3D positions or target for the effector."))
-    , d_ellipseParameters(initData(&d_ellipseParameters, "ellipseParameters",
-                    "Target ellipse parameters detected in image [cx, cy, a, b, angle]."))
+    , d_pointCenter(initData(&d_pointCenter, "pointCenter",
+                    "Target point center detected in image [cx, cy, a, b, angle]."))
     , d_cameraPosition(initData(&d_cameraPosition, sofa::type::Vec3d(0.0, 0.0, -13.2), "cameraPosition",
                     "Position of the camera in world coordinates [x, y, z]."))
 {
@@ -107,78 +107,30 @@ void CameraProjectionPointsEffector<DataTypes>::resizeData()
 }
 
 
-Eigen::Vector3d ProjectionPosition(double cx_ellipse, double cy_ellipse, 
-                                   double a_ellipse, double b_ellipse, double angle_ellipse,
-                                   double cx_camera, double cy_camera, 
-                                   double x_focal_length, double y_focal_length,
-                                   double real_radius)
-{
-    if (a_ellipse <= 1e-6)
-    {
-        return Eigen::Vector3d::Zero();
-    }
 
-    double a = a_ellipse;
-
-    // axis z distnace
-    double Z = (x_focal_length * real_radius) / a;
-
-    // axis (x, y) distance
-    double X = (cx_ellipse - cx_camera) * Z / x_focal_length;
-    double Y = (cy_ellipse - cy_camera) * Z / y_focal_length;
-
-    SOFA_UNUSED(b_ellipse);
-    SOFA_UNUSED(angle_ellipse);
-
-    return Eigen::Vector3d(X, Y, Z);
-}
-
-
-Eigen::Matrix<double, 5, 1> calculateProjectedEllipse(
+Eigen::Matrix<double, 2, 1> calculateProjectedPoint(
     double x, double y, double z,
-    const Eigen::Matrix3d& R,
-    double radius,
     const sofa::type::Vec2d& focalLength,
     const sofa::type::Vec2d& principalPoint,
     const sofa::type::Vec3d& cameraPos)
 {
-    // coords relative to camera postiicon given in sofa
+    // relative coordinates of the camera 
     double x_rel = x - cameraPos[0];
     double y_rel = y - cameraPos[1];
     double z_rel = z - cameraPos[2];
 
-    // projection to 2d
+    // 2d projection
     double u = focalLength[0] * (x_rel / z_rel) + principalPoint[0];
     double v = focalLength[1] * (y_rel / z_rel) + principalPoint[1]; 
 
-    // normal vector of the effector in camera coordinates
-    Eigen::Vector3d normal = R.col(2); 
-    double cos_tilt = std::abs(normal(2));
-    if (cos_tilt < 1e-3) cos_tilt = 1e-3;
 
-    // semi-axes of the projected ellipse
-    double semi_a = focalLength[0] * (2*radius / z_rel);  
-    double semi_b = semi_a * cos_tilt;           
+    Eigen::Matrix<double, 2, 1> point;
+    point << u, v;
 
-    // angle of the semi-major axis (+90° to align with the normal vector)
-    double alpha_rad = std::atan2(-normal(1), normal(0)) + (M_PI / 2.0);
-    double alpha_deg = alpha_rad * (180.0 / M_PI);
-
-    // normalization of the angle to the range [0, 180)
-    while (alpha_deg < 0.0) alpha_deg += 180.0;
-    while (alpha_deg >= 180.0) alpha_deg -= 180.0;
-
-    Eigen::Matrix<double, 5, 1> ellipse;
-    ellipse << u, v, semi_a, semi_b, alpha_deg;
-
-    // std::cout << "Simulated Projection: " << ellipse.transpose() << std::endl;
-    // std::cout << "relative position: " << x_rel << ", " << y_rel << ", " << z_rel << std::endl;
-    // std::cout << "camera position: " << cameraPos[0] << ", " << cameraPos[1] << ", " << cameraPos[2] << std::endl;
-    // std::cout << "xyz position: " << x << ", " << y << ", " << z  << std::endl << '\n\n';
-
-
-    return ellipse;
+    return point;
 }
+
+
 
 template<class DataTypes>
 void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sofa::core::ConstraintParams* cParams,
@@ -193,8 +145,8 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
     // with this we can acces to the parameters
     ReadAccessor<sofa::Data<VecCoord>> x = m_state->readPositions();
     
-    const auto& ellipseParams       = sofa::helper::getReadAccessor(d_ellipseParameters); 
-    const double realRadius         = d_radiusEllipse.getValue();
+    const auto& pointCenter         = sofa::helper::getReadAccessor(d_pointCenter); 
+    // const double realRadius         = d_radiusEllipse.getValue();
     const sofa::type::Vec3d cameraPosition = d_cameraPosition.getValue(); // acess to camera position
     const auto& weight              = sofa::helper::getReadAccessor(d_weight);
     const auto& indices             = sofa::helper::getReadAccessor(d_indices);
@@ -206,8 +158,8 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
 
     // this is the objective to follow 
     // in this case we detect with other code and our camera the ellipse parameters 
-    Eigen::Matrix<double, 5, 1> E_target;
-    E_target << ellipseParams[0], ellipseParams[1], ellipseParams[2], ellipseParams[3], ellipseParams[4];
+    Eigen::Matrix<double, 2, 1> Point_target;
+    Point_target << pointCenter[0], pointCenter[1];
 
     unsigned int index = 0;
 
@@ -225,27 +177,21 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
         Eigen::Matrix3d R = q.toRotationMatrix();
 
         // 2d projection of the 3d position and orientation of the effector
-        Eigen::Matrix<double, 5, 1> E_current = calculateProjectedEllipse(
+        Eigen::Matrix<double, 2, 1> Point_current = calculateProjectedPoint(
             x_pos, y_pos, z_pos, 
-            R, 
-            realRadius, 
             fLength, 
             pPoint,
             cameraPosition
         );
 
-        Eigen::Matrix<double, 5, 1> E_diff = E_current - E_target;
+        Eigen::Matrix<double, 2, 1> Point_diff = Point_current - Point_target;
 
-        // normalization
-        while (E_diff[4] > 90.0)  E_diff[4] -= 180.0;
-        while (E_diff[4] < -90.0) E_diff[4] += 180.0;
 
-        // this is the projection error 
-        msg_info(this) << "E_diff: " << E_diff.transpose();
+        msg_info(this) << "Point_diff: " << Point_diff.transpose();
 
-        for (sofa::Size j = 0; j < 5; j++)
+        for (sofa::Size j = 0; j < 2; j++)
         {
-            Real dfree = Jdx->element(constraintIndex + index) + E_diff[j] * weight[j];
+            Real dfree = Jdx->element(constraintIndex + index) + Point_diff[j] * weight[j];
             resV->set(constraintIndex + index, dfree);
             index++;
         }
