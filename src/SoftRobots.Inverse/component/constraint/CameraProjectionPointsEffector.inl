@@ -118,7 +118,12 @@ Eigen::Matrix<double, 2, 1> calculateProjectedPoint(
     double x_rel = x - cameraPos[0];
     double y_rel = y - cameraPos[1];
     double z_rel = z - cameraPos[2];
+    if (std::abs(z_rel) < 1e-3)
+        {
+            z_rel = (z_rel >= 0) ? 1e-3 : -1e-3;
+        }
 
+    // std::cout << "z_rel: " << z_rel << std::endl;
     // 2d projection
     double u = focalLength[0] * (x_rel / z_rel) + principalPoint[0];
     double v = focalLength[1] * (y_rel / z_rel) + principalPoint[1]; 
@@ -139,7 +144,7 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
 {
     if (d_componentState.getValue() != ComponentState::Valid)
         return;
-
+ 
     SOFA_UNUSED(cParams);
 
     // with this we can acces to the parameters
@@ -173,8 +178,8 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
         double z_pos = coord[2];
 
         // quaternions 
-        Eigen::Quaterniond q(coord[6], coord[3], coord[4], coord[5]);
-        Eigen::Matrix3d R = q.toRotationMatrix();
+        // Eigen::Quaterniond q(coord[6], coord[3], coord[4], coord[5]);
+        // Eigen::Matrix3d R = q.toRotationMatrix();
 
         // 2d projection of the 3d position and orientation of the effector
         Eigen::Matrix<double, 2, 1> Point_current = calculateProjectedPoint(
@@ -191,13 +196,14 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
 
         for (sofa::Size j = 0; j < 2; j++)
         {
-            Real dfree = Jdx->element(constraintIndex + index) + Point_diff[j] * weight[j];
+            // Real dfree = Jdx->element(constraintIndex + index) + Point_diff[j] * weight[j];
+            Real dfree = Jdx->element(index) + Point_diff[j] * weight[j];
             resV->set(constraintIndex + index, dfree);
             index++;
         }
 
-        resV->set(constraintIndex + index, 0.0);
-        index++;
+        // resV->set(constraintIndex + index, 0.0);
+        // index++;
     }
 }
 
