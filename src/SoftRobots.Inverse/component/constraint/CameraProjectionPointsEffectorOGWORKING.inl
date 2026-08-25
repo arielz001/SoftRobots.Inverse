@@ -58,8 +58,6 @@ CameraProjectionPointsEffector<DataTypes>::CameraProjectionPointsEffector(Mechan
                     "Target point center detected in image [cx, cy, a, b, angle]."))
     , d_cameraPosition(initData(&d_cameraPosition, sofa::type::Vec3d(0.0, 0.0, -13.2), "cameraPosition",
                     "Position of the camera in world coordinates [x, y, z]."))
-    , d_cameraOrientation(initData(&d_cameraOrientation, sofa::type::Vec3d(0.0, 0.0, 0.0), "cameraOrientation",
-                    "Orientation of the camera in Euler angles [pitch, yaw, roll] in degrees."))
 {
 }
 
@@ -110,73 +108,32 @@ void CameraProjectionPointsEffector<DataTypes>::resizeData()
 
 
 
-// Eigen::Matrix<double, 2, 1> calculateProjectedPoint(
-//     double x, double y, double z,
-//     const sofa::type::Vec2d& focalLength,
-//     const sofa::type::Vec2d& principalPoint,
-//     const sofa::type::Vec3d& cameraPos)
-// {
-//     // relative coordinates of the camera 
-//     double x_rel = x - cameraPos[0];
-//     double y_rel = y - cameraPos[1];
-//     double z_rel = z - cameraPos[2];
-//     if (std::abs(z_rel) < 1e-3)
-//         {
-//             z_rel = (z_rel >= 0) ? 1e-3 : -1e-3;
-//         }
-
-//     // std::cout << "z_rel: " << z_rel << std::endl;
-//     // 2d projection
-//     double u = focalLength[0] * (x_rel / z_rel) + principalPoint[0];
-//     double v = focalLength[1] * (y_rel / z_rel) + principalPoint[1]; 
-
-
-//     Eigen::Matrix<double, 2, 1> point;
-//     point << u, v;
-
-//     return point;
-// }
-
-
 Eigen::Matrix<double, 2, 1> calculateProjectedPoint(
     double x, double y, double z,
     const sofa::type::Vec2d& focalLength,
     const sofa::type::Vec2d& principalPoint,
-    const sofa::type::Vec3d& cameraPos,
-    const sofa::type::Vec3d& cameraOrientation)
+    const sofa::type::Vec3d& cameraPos)
 {
-    double pitch = cameraOrientation[0] * M_PI / 180.0;
-    double yaw   = cameraOrientation[1] * M_PI / 180.0;
-    double roll  = cameraOrientation[2] * M_PI / 180.0; 
+    // relative coordinates of the camera 
+    double x_rel = x - cameraPos[0];
+    double y_rel = y - cameraPos[1];
+    double z_rel = z - cameraPos[2];
+    if (std::abs(z_rel) < 1e-3)
+        {
+            z_rel = (z_rel >= 0) ? 1e-3 : -1e-3;
+        }
 
-    Eigen::Matrix3d Rx, Ry, Rz;
-    Rx = Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitX());
-    Ry = Eigen::AngleAxisd(yaw,   Eigen::Vector3d::UnitY());
-    Rz = Eigen::AngleAxisd(roll,  Eigen::Vector3d::UnitZ());
+    // std::cout << "z_rel: " << z_rel << std::endl;
+    // 2d projection
+    double u = focalLength[0] * (x_rel / z_rel) + principalPoint[0];
+    double v = focalLength[1] * (y_rel / z_rel) + principalPoint[1]; 
 
-    Eigen::Matrix3d R = Rz * Ry * Rx;
-
-    Eigen::Vector3d P_world(x, y, z);
-    Eigen::Vector3d C(cameraPos[0], cameraPos[1], cameraPos[2]);
-    Eigen::Vector3d P_rel = P_world - C;
-
-    Eigen::Vector3d P_cam = R * P_rel;
-
-    double x_cam = P_cam.x();
-    double y_cam = P_cam.y();
-    double z_cam = P_cam.z();
-
-    if (std::abs(z_cam) < 1e-5) z_cam = 1e-5;
-
-    double u = focalLength[0] * (x_cam / z_cam) + principalPoint[0];
-    double v = focalLength[1] * (y_cam / z_cam) + principalPoint[1];
 
     Eigen::Matrix<double, 2, 1> point;
     point << u, v;
 
     return point;
 }
-
 
 
 
@@ -196,7 +153,6 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
     const auto& pointCenter         = sofa::helper::getReadAccessor(d_pointCenter); 
     // const double realRadius         = d_radiusEllipse.getValue();
     const sofa::type::Vec3d cameraPosition = d_cameraPosition.getValue(); // acess to camera position
-    const sofa::type::Vec3d cameraOrientation = d_cameraOrientation.getValue(); // acess to camera orientation
     const auto& weight              = sofa::helper::getReadAccessor(d_weight);
     const auto& indices             = sofa::helper::getReadAccessor(d_indices);
     const auto& constraintIndex     = sofa::helper::getReadAccessor(d_constraintIndex);
@@ -230,8 +186,7 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
             x_pos, y_pos, z_pos, 
             fLength, 
             pPoint,
-            cameraPosition,
-            cameraOrientation
+            cameraPosition
         );
 
         Eigen::Matrix<double, 2, 1> Point_diff = Point_current - Point_target;

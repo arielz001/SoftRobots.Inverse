@@ -71,7 +71,6 @@ public:
     sofa::Data<VecCoord>                                d_effectorGoal;
     sofa::Data<sofa::type::vector<double>>              d_pointCenter; 
     sofa::Data<sofa::type::Vec3d>                       d_cameraPosition;
-    sofa::Data<sofa::type::Vec3d>                       d_cameraOrientation;
 
 
     void setTargetDefaultValue();
