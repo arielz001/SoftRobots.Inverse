@@ -1,80 +1,8 @@
-# from PythonScripts.EqController import Controller
+from PythonScripts.EqController import Controller
 import ConstantsAccordeon as Const
 
-import Sofa
-import Sofa.Core
-import Sofa.Simulation
-import SofaRuntime
-import os
-import numpy as np
 import os
 MeshesPath = os.path.dirname(os.path.abspath(__file__)) + '/GeneratedMeshes/'
-
-
-from Sofa import SofaConstraintSolver
-import Sofa.SoftRobotsInverse
-
-
-_runAsPythonScript = False
-
-def get1DIdx(RowIdx,ColIdx):
-    Idx1D = RowIdx * 8 + ColIdx
-    return Idx1D
-
-class Controller(Sofa.Core.Controller):
-
-    def __init__(self, *args, **kwargs):
-        Sofa.Core.Controller.__init__(self, *args, **kwargs)
-        self.RootNode = kwargs['RootNode']
-
-        self.Counter = 0
-        self.IterationCounter = 0
-        self.DistributionStride = 5
-        self.begun = False
-
-        self.ModelNode = self.RootNode.model
-        self.SurfacePressureEquality = self.ModelNode.AccordeonCavity.SurfacePressureEquality
-
-        self.VolumeChange = 0
-        self.VolumeIncrement = 30
-        self.SideInflationSign = 1
-
-    def onAnimateBeginEvent(self, eventType):
-        pass
-
-    def onKeypressedEvent(self, c):
-        pass
-        key = c['key']
-
-        if (key == "+"):
-            self.VolumeChange = self.VolumeChange + self.VolumeIncrement # a negative volume changes means increasing volume!
-            #MeasuredVolumeChanges = [self.VolumeChange, self.VolumeChange, -self.VolumeChange, -self.VolumeChange]
-
-        if (key == "-"):
-            self.VolumeChange = self.VolumeChange - self.VolumeIncrement # a negative volume changes means increasing volume!
-            #MeasuredVolumeChanges = [self.VolumeChange, self.VolumeChange, -self.VolumeChange, -self.VolumeChange]
-
-        self.setDesiredVolumeEquality(self.VolumeChange)
-
-
-    def setDesiredVolumeEquality(self, Volume):
-        self.SurfacePressureEquality.getData('eqVolumeGrowth').value = Volume
-
-
-
-class MyQPInverseProblemSolver(Sofa.SoftRobotsInverse.QPInverseProblemSolver):
-
-    def __init__(self, *args, **kwargs):
-        Sofa.SoftRobotsInverse.QPInverseProblemSolver.__init__(self, *args, **kwargs)
-        self.name = "ConstraintSolver"
-
-    def solveSystem(self):
-        W = self.W()
-        dfree = self.dfree()
-        torques = self.lambda_force()  # pointer on lambda
-        print(f"{W}")
-        return True
-
 
 
 def createScene(rootNode):
@@ -87,10 +15,7 @@ def createScene(rootNode):
     rootNode.findData('gravity').value = [0, 0, 0]
     rootNode.findData('dt').value = 0.02
     rootNode.addObject('FreeMotionAnimationLoop')
-    # rootNode.addObject('QPInverseProblemSolver', printLog=0, epsilon=1e-1, maxIterations=1000, tolerance=1e-5)
-    # rootNode.addObject('QPInverseProblemSolver', printLog=0, epsilon=1e-1, maxIterations=1000, tolerance=1e-5)
-    rootNode.addObject(MyQPInverseProblemSolver())
-
+    rootNode.addObject('QPInverseProblemSolver', printLog=0, epsilon=1e-1, maxIterations=1000, tolerance=1e-5)
 
     rootNode.addObject('BackgroundSetting', color=[1, 1, 1, 1])
     rootNode.addObject('LightManager')
