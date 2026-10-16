@@ -301,6 +301,50 @@ void ForcePointActuator<DataTypes>::storeResults(vector<double> &lambda, vector<
 }
 
 
+// template<class DataTypes>
+// void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
+// {
+//     if (!vparams->displayFlags().getShowInteractionForceFields() || !d_showForce.getValue())
+//         return;
+
+//     vparams->drawTool()->setLightingEnabled(true);
+
+//     ReadAccessor<sofa::Data<sofa::type::vector<sofa::Index>>> indices = sofa::helper::getReadAccessor(d_indices);
+//     ReadAccessor<sofa::Data<Real>> visuScale = sofa::helper::getReadAccessor(d_visuScale);
+//     ReadAccessor<sofa::Data<VecCoord> > positions = m_state->readPositions();
+//     ReadAccessor<sofa::Data<vector<Real>>> force = d_force;
+//     Deriv direction = d_direction.getValue();
+
+//     static const sofa::type::RGBAColor color(0,0,0.8,1);
+//     for(const sofa::Index& index: indices)
+//     {
+//         if(index < m_state->getSize())
+//         {
+//             Vec3 position = Vec3(positions[index][0], positions[index][1], positions[index][2]);
+//             if(m_dim > 1)
+//             {
+//                 Vec3 dir = Vec3(force[0], force[1], force[2]);
+//                 vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
+//                 std::cout << "DRAWING ARROW" << std::endl;
+
+//             }
+//             else
+//             {
+//                 direction /= direction.norm();
+//                 Vec3 dir = Vec3(direction[0], direction[1], direction[2]); 
+//                 vparams->drawTool()->drawArrow(position - dir*log(force[0]+1)*visuScale, position, log(force[0]+1)*visuScale/20.0f, color, 4);
+//                 std::cout << "DRAWING ARROW" << std::endl;
+
+
+//             }
+//         }
+//     }
+
+//     vparams->drawTool()->restoreLastState();
+// }
+
+
+
 template<class DataTypes>
 void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
 {
@@ -325,18 +369,32 @@ void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
             {
                 Vec3 dir = Vec3(force[0], force[1], force[2]);
                 vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
+                std::cout << "DRAWING ARROW" << std::endl;
+
             }
+            // else
+            // {
+            //     direction /= direction.norm();
+            //     Vec3 dir = Vec3(direction[0], direction[1], direction[2]); 
+            //     vparams->drawTool()->drawArrow(position - dir*log(force[0]+1)*visuScale, position, log(force[0]+1)*visuScale/20.0f, color, 4);
+            //     std::cout << "DRAWING ARROW" << std::endl;
+            // }
+            
             else
             {
                 direction /= direction.norm();
-                Vec3 dir = Vec3(direction[0], direction[1], direction[2]);
-                vparams->drawTool()->drawArrow(position - dir*log(force[0]+1)*visuScale, position, log(force[0]+1)*visuScale/20.0f, color, 4);
+                Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::abs(force[0]); 
+                vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
+                std::cout << "DRAWING ARROW" << std::endl;
             }
+
         }
     }
 
     vparams->drawTool()->restoreLastState();
 }
+
+
 
 
 } // namespace
