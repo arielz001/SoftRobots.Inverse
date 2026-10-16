@@ -109,6 +109,7 @@ protected:
 
     sofa::Data<bool>                             d_showForce;
     sofa::Data<Real>                             d_visuScale;
+    sofa::Data<bool>                             d_visuLog;
 
     sofa::Size                                   m_dim;
 

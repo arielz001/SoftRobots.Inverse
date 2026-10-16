@@ -79,7 +79,10 @@ ForcePointActuator<DataTypes>::ForcePointActuator(MechanicalState* object)
     , d_showForce(initData(&d_showForce, false, "showForce",
                            ""))
 
+                           
     , d_visuScale(initData(&d_visuScale, Real(0.1), "visuScale",
+                           ""))
+    , d_visuLog(initData(&d_visuLog, false, "visuLog",
                            ""))
 
 {
@@ -370,24 +373,24 @@ void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
                 Vec3 dir = Vec3(force[0], force[1], force[2]);
                 vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
                 std::cout << "DRAWING ARROW" << std::endl;
-
             }
-            // else
-            // {
-            //     direction /= direction.norm();
-            //     Vec3 dir = Vec3(direction[0], direction[1], direction[2]); 
-            //     vparams->drawTool()->drawArrow(position - dir*log(force[0]+1)*visuScale, position, log(force[0]+1)*visuScale/20.0f, color, 4);
-            //     std::cout << "DRAWING ARROW" << std::endl;
-            // }
-            
+
             else
             {
-                direction /= direction.norm();
-                Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::abs(force[0]); 
-                vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
-                std::cout << "DRAWING ARROW" << std::endl;
+                if (d_visuLog.getValue()==false){
+                    direction /= direction.norm();
+                    Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::abs(force[0]); 
+                    vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
+                    std::cout << "DRAWING ARROW" << std::endl;
+                }
+                
+                else {
+                    direction /= direction.norm();
+                    Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::log(std::abs(force[0]) + 1.0) * 10000.0; 
+                    vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
+                    std::cout << "DRAWING ARROW LOG" << std::endl;
+                }
             }
-
         }
     }
 
