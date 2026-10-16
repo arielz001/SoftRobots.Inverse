@@ -372,7 +372,7 @@ void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
             {
                 Vec3 dir = Vec3(force[0], force[1], force[2]);
                 vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
-                std::cout << "DRAWING ARROW" << std::endl;
+                // std::cout << "DRAWING ARROW" << std::endl;
             }
 
             else
@@ -381,7 +381,7 @@ void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
                     direction /= direction.norm();
                     Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::abs(force[0]); 
                     vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
-                    std::cout << "DRAWING ARROW" << std::endl;
+                    // std::cout << "DRAWING ARROW" << std::endl;
                 }
                 
                 else {
@@ -389,7 +389,7 @@ void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
                     Real signForce = (force[0] < 0.0) ? -1.0 : 1.0;
                     Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::log(std::abs(force[0]) + 1.0) * signForce * 30000.0; 
                     vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
-                    std::cout << "DRAWING ARROW LOG" << std::endl;
+                    // std::cout << "DRAWING ARROW LOG" << std::endl;
                 }
             }
         }
