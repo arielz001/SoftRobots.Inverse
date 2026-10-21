@@ -79,7 +79,6 @@ ForcePointActuator<DataTypes>::ForcePointActuator(MechanicalState* object)
     , d_showForce(initData(&d_showForce, false, "showForce",
                            ""))
 
-                           
     , d_visuScale(initData(&d_visuScale, Real(0.1), "visuScale",
                            ""))
     , d_visuLog(initData(&d_visuLog, false, "visuLog",
@@ -98,6 +97,7 @@ void ForcePointActuator<DataTypes>::setUpData()
 
     d_showForce.setGroup("Visualization");
     d_visuScale.setGroup("Visualization");
+    d_visuLog.setGroup("Visualization");
 }
 
 
@@ -386,14 +386,15 @@ void ForcePointActuator<DataTypes>::draw(const VisualParams* vparams)
                 
                 else {
                     direction /= direction.norm();
-                    Real signForce = (force[0] < 0.0) ? -1.0 : 1.0;
-                    Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::log(std::abs(force[0]) + 1.0) * signForce * 30000.0; 
+                    int signForce = (force[0] < 0.0) ? -1: 1;
+                    Vec3 dir = Vec3(direction[0], direction[1], direction[2]) * std::log(std::abs(force[0]) + 1.0) * signForce; 
                     vparams->drawTool()->drawArrow(position - dir*visuScale, position, dir.norm()*visuScale/20.0f, color, 4);
                     // std::cout << "DRAWING ARROW LOG" << std::endl;
                 }
             }
         }
     }
+    // void drawArrow   (const type::Vec3& p1, const type::Vec3 &p2, float radius, const type::RGBAColor& color,  int subd=16) override;
 
     vparams->drawTool()->restoreLastState();
 }
