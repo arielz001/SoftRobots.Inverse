@@ -154,13 +154,31 @@ Eigen::Matrix<double, 2, 1> calculateProjectedPoint(
     Ry = Eigen::AngleAxisd(yaw,   Eigen::Vector3d::UnitY());
     Rz = Eigen::AngleAxisd(roll,  Eigen::Vector3d::UnitZ());
 
+    // Eigen::Matrix3d R = Rz * Ry * Rx;
+
+    // Eigen::Vector3d P_world(x, y, z);
+    // Eigen::Vector3d C(cameraPos[0], cameraPos[1], cameraPos[2]);
+    // Eigen::Vector3d P_rel = P_world - C;
+
+    // Eigen::Vector3d P_cam = R * P_rel;
+
+    // double x_cam = P_cam.x();
+    // double y_cam = P_cam.y();
+    // double z_cam = P_cam.z();
+
+    // if (std::abs(z_cam) < 1e-5) z_cam = 1e-5;
+
+    // double u = focalLength[0] * (x_cam / z_cam) + principalPoint[0];
+    // double v = focalLength[1] * (y_cam / z_cam) + principalPoint[1];
+
     Eigen::Matrix3d R = Rz * Ry * Rx;
 
     Eigen::Vector3d P_world(x, y, z);
     Eigen::Vector3d C(cameraPos[0], cameraPos[1], cameraPos[2]);
     Eigen::Vector3d P_rel = P_world - C;
 
-    Eigen::Vector3d P_cam = R * P_rel;
+    // from world to camera coordinates, we use the transpose (inverse) of the camera pose:
+    Eigen::Vector3d P_cam = R.transpose() * P_rel;
 
     double x_cam = P_cam.x();
     double y_cam = P_cam.y();
@@ -171,8 +189,14 @@ Eigen::Matrix<double, 2, 1> calculateProjectedPoint(
     double u = focalLength[0] * (x_cam / z_cam) + principalPoint[0];
     double v = focalLength[1] * (y_cam / z_cam) + principalPoint[1];
 
+    // double v = focalLength[1] * (-y_cam / z_cam) + principalPoint[1];
+
     Eigen::Matrix<double, 2, 1> point;
     point << u, v;
+
+    std::cout << "Projected Point: (" << u << ", " << v << ")" << std::endl;
+    std::cout << "x_cam: " << x_cam << ", y_cam: " << y_cam << ", z_cam: " << z_cam << std::endl;
+    // std::cout << "x_real: " << x << ", y_real: " << y << ", z_real: " << z << std::endl;
 
     return point;
 }
@@ -235,7 +259,11 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
         );
 
         Eigen::Matrix<double, 2, 1> Point_diff = Point_current - Point_target;
+        
+        // Eigen::Matrix<double, 2, 1> Point_diff = Point_target - Point_current;
 
+        std::cout << "Point_current: (" << Point_current[0] << ", " << Point_current[1] << ")" << std::endl;
+        std::cout << "Point_target: (" << Point_target[0] << ", " << Point_target[1] << ")" << std::endl;
 
         msg_info(this) << "Point_diff: " << Point_diff.transpose();
 
@@ -246,6 +274,16 @@ void CameraProjectionPointsEffector<DataTypes>::getConstraintViolation(const sof
             resV->set(constraintIndex + index, dfree);
             index++;
         }
+
+
+        std::cout << "principalPoint: "
+          << pPoint[0] << ", " << pPoint[1] << std::endl;
+
+        std::cout << "pointCenter: "
+                << pointCenter[0] << ", " << pointCenter[1] << std::endl;
+
+        std::cout << "Jdx: "
+                << Jdx->element(constraintIndex) << std::endl;
 
         // resV->set(constraintIndex + index, 0.0);
         // index++;
