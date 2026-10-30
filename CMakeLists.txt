@@ -31,6 +31,11 @@ set(HEADER_FILES
     ${SRC_DIR}/component/constraint/VolumeEffector.h
     ${SRC_DIR}/component/constraint/VolumeEffector.inl
 
+    # camera Effector
+    ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.h
+    ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.inl
+
+
     # ACTUATOR
     ${SRC_DIR}/component/behavior/Actuator.h
     ${SRC_DIR}/component/behavior/Actuator.inl
@@ -90,6 +95,9 @@ set(SOURCE_FILES
     ${SRC_DIR}/component/constraint/CableEffector.cpp
     ${SRC_DIR}/component/constraint/PositionEffector.cpp
     ${SRC_DIR}/component/constraint/VolumeEffector.cpp
+
+    # camera
+    ${SRC_DIR}/component/constraint/CameraProjectionPointsEffector.cpp
 
     # ACTUATOR
     ${SRC_DIR}/component/behavior/Actuator.cpp
