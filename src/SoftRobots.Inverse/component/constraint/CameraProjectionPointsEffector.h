@@ -70,8 +70,8 @@ public:
 
     sofa::Data<VecCoord>                                d_effectorGoal;
     sofa::Data<sofa::type::vector<double>>              d_pointCenter; 
-    sofa::Data<sofa::type::Vec3d>                       d_cameraPosition;
-    sofa::Data<sofa::type::Vec3d>                       d_cameraOrientation;
+    // sofa::Data<sofa::type::Vec3d>                       d_cameraPosition;
+    // sofa::Data<sofa::type::Vec3d>                       d_cameraOrientation;
     sofa::Data<sofa::type::Vec2d>                       d_currentProjection;
 
 
@@ -83,8 +83,8 @@ public:
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_directions ;
     using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_Jacobian ;
     
-    // using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_cameraPosition ;
-    // using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_cameraOrientation ;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_cameraPosition ;
+    using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_cameraOrientation ;
     // using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_PosSensor ;
     // using softrobots::constraint::CameraProjectionPointsModel<DataTypes>::d_mum ;
 

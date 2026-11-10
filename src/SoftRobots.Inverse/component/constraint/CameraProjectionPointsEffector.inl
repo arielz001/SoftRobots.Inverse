@@ -56,10 +56,10 @@ CameraProjectionPointsEffector<DataTypes>::CameraProjectionPointsEffector(Mechan
                     "Desired 3D positions or target for the effector."))
     , d_pointCenter(initData(&d_pointCenter, "pointCenter",
                     "Target point center detected in image [cx, cy, a, b, angle]."))
-    , d_cameraPosition(initData(&d_cameraPosition, sofa::type::Vec3d(0.0, 0.0, -13.2), "cameraPosition",
-                    "Position of the camera in world coordinates [x, y, z]."))
-    , d_cameraOrientation(initData(&d_cameraOrientation, sofa::type::Vec3d(0.0, 0.0, 0.0), "cameraOrientation",
-                    "Orientation of the camera in Euler angles [pitch, yaw, roll] in degrees."))
+    // , d_cameraPosition(initData(&d_cameraPosition, sofa::type::Vec3d(0.0, 0.0, -13.2), "cameraPosition",
+    //                 "Position of the camera in world coordinates [x, y, z]."))
+    // , d_cameraOrientation(initData(&d_cameraOrientation, sofa::type::Vec3d(0.0, 0.0, 0.0), "cameraOrientation",
+    //                 "Orientation of the camera in Euler angles [pitch, yaw, roll] in degrees."))
     , d_currentProjection(initData(&d_currentProjection, sofa::type::Vec2d(0.0, 0.0), "currentProjection",
                     "Current projected point in image coordinates [u, v]."))
 {
